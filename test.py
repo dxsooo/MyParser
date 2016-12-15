@@ -20,7 +20,7 @@ from PyLuaTblParser import PyLuaTblParser
 a1 = PyLuaTblParser()
 # test_str = '{array = {65,23,5,},dict = {7,8,false,string="value"},}'
 # test_str = """{a={132,123},b={456}}"""
-test_str = """{a=132,b=123,456,nil,True,"1321"}"""
+test_str = """{{132,123},456,nil,True,"1321"}"""
 a1.load(test_str)
 # a1.loadLuaTable('lua.tbl')
 d1 = a1.dumpDict()

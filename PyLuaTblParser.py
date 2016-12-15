@@ -40,8 +40,10 @@ class PyLuaTblParser():
                     break
                 j -= 1
             j += 1
-            if j != i:
-                pass
+            pj_keys=[]
+            while j != i:
+                pj_keys.append(self.brackets[j][0])
+                j+=1
                 # for bracket in self.brackets:
             is_list = True
             str = s[bracket[0] + 1:bracket[1]]
@@ -49,8 +51,11 @@ class PyLuaTblParser():
             for l in ls:
                 if l.find('=') > -1:
                     is_list = False
+            xstr=str.replace(',','_').replace('=', '_')
+            s=s.replace(str,xstr)
             if is_list:
                 rls = []
+                pj_i=0
                 for l in ls:
                     if l == 'true':
                         b = True
@@ -64,6 +69,10 @@ class PyLuaTblParser():
                     else:
                         if l == '':
                             continue
+                        elif len(l)>1 and l[0]=='{' and l[-1]=='}':
+                            rls.append(cur_res[pj_keys[pj_i]])
+                            del cur_res[pj_keys[pj_i]]
+                            pj_i+=1
                         elif self.validStr(l):
                             rls.append(l[1:-1])
                         # elif l[0]=='\"' and l[-1]=='\"':
