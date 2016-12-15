@@ -15,11 +15,12 @@ from PyLuaTblParser import PyLuaTblParser
 # a3.loadLuaTable(file_path)
 #
 # d3 = a3.dumpDict()
-aa={1:2,"3":6}
-print type(aa)
+# aa={1:2,"3":6}
+# print type(aa)
 a1 = PyLuaTblParser()
 # test_str = '{array = {65,23,5,},dict = {7,8,false,string="value"},}'
-test_str = '{1,2,3,0.4,4.57e-3,5e+20,0.3e12,"1\\"23"=45}'
+# test_str = """{a={132,123},b={456}}"""
+test_str = """{a=132,b=123,456,nil,True,"1321"}"""
 a1.load(test_str)
 # a1.loadLuaTable('lua.tbl')
 d1 = a1.dumpDict()
