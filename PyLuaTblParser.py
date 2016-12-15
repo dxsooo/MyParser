@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*-
+﻿# -*- coding:utf-8 -*-
 
 class PyLuaTblParser():
     '''
@@ -31,7 +31,17 @@ class PyLuaTblParser():
             raise Exception('lua table string format Error on {}')
         # print self.brackets_info
         cur_res={}
-        for bracket in self.brackets:
+	for i in xrange(0,len(self.brackets)):
+	    bracket = self.brackets[i]
+	    j=i-1
+	    while j>-1:
+		if self.brackets[j][0]<self.brackets[i][0]:
+		    break
+		j-=1
+	    j +=1
+	    if j!=i:
+		
+        #for bracket in self.brackets:
             is_list= True
             str=s[bracket[0]+1:bracket[1]]
             ls=str.split(',')
