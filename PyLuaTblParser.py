@@ -10,6 +10,8 @@ class PyLuaTblParser():
 6. dumpDict(self)  返回一个dict，包含类中的数据
     '''
     dict = {}
+    ori_str=""""""
+    cur_valid=""
 
     def __init__(self):
         self.dict = {}
@@ -17,7 +19,7 @@ class PyLuaTblParser():
     def load(self, s):
         brackets_stack = []
         brackets = []
-
+        ori_str=str(s)
         # get all valid brackets
         quotation_stack_1 = []
         quotation_stack_2 = []
@@ -58,13 +60,11 @@ class PyLuaTblParser():
                 j += 1
             # deal with current bracket
             is_list = True
-            str = s[cur_bracket[0] + 1:cur_bracket[1]] # get content
-            ls= self.mySplit(str) # split with separator
+            content = s[cur_bracket[0] + 1:cur_bracket[1]]  # get content
+            ls = self.mySplit(content)  # split with separator
             for l in ls:
                 if l.find('=') > -1:
                     is_list = False
-            xstr = str.replace(',', '_').replace('=', '_')
-            s = s.replace(str, xstr)
             if is_list:
                 rls = []
                 pj_i = 0
@@ -80,6 +80,8 @@ class PyLuaTblParser():
                         rls.append(b)
                     else:
                         if l == '':
+                            if ls.index(l)!=len(ls)-1:
+                                raise Exception('empty value after split')
                             continue
                         elif len(l) > 1 and l[0] == '{' and l[-1] == '}':
                             rls.append(cur_res[pj_keys[pj_i]])
@@ -87,24 +89,12 @@ class PyLuaTblParser():
                             pj_i += 1
                         elif self.validStr(l):
                             rls.append(l[1:-1])
-                        # elif l[0]=='\"' and l[-1]=='\"':
-                        # ts=l[1:-1]
-                        # if ts.find('\"')>-1:
-                        #         raise Exception('lua table string format Error on string')
-                        #     rls.append(ts)
-                        # elif l[0]=='\'' and l[-1]=='\'':
-                        #     ts = l[1:-1]
-                        #     if ts.find('\'') > -1:
-                        #         raise Exception('lua table string format Error on string')
-                        #     rls.append(ts)
                         else:
-                            # print len(l)
-                            # print l[1:-1]
                             rls.append(eval(l))
-                            # raise Exception('lua table string format Error on string')
             else:
                 # dict
                 rls = {}
+                pj_i = 0
                 index = 1
                 for l in ls:
                     if l.find('=') == -1:
@@ -135,39 +125,44 @@ class PyLuaTblParser():
                             b = False
                             rls[lk[0]] = b
                         elif lk[1] == 'nil':
+                            index += 1
                             continue
+                        elif len(lk[1]) > 1 and lk[1][0] == '{' and lk[1][-1] == '}':
+                            rls[lk[0]] = cur_res[pj_keys[pj_i]]
+                            del cur_res[pj_keys[pj_i]]
+                            pj_i += 1
                         else:
                             if self.validStr(lk[1]):
-                                rls[lk[0]] = lk[1][1:-1]
+                                rls[lk[0]] = lk[1][1:-1].strip()
                             else:
                                 rls[lk[0]] = eval(lk[1])
-                                # index += 1
-            cur_res[bracket[0]] = rls
+            cur_res[cur_bracket[0]] = rls
+            # replace separators
+            s=s[:cur_bracket[0]]+s[cur_bracket[0]:cur_bracket[1]].replace(',','_').replace(';','_')+s[cur_bracket[1]:]
 
-        # if len(cur_res) == 1:
         for key in cur_res:
             self.dict = cur_res[key]
         return
 
     def dump(self):
-        return self.dict
+        return str(self.dict)
 
     def loadLuaTable(self, f):
         self.load(open(f).read())
-        pass
 
     def dumpLuaTable(self, f):
-        return self.dict
+        fw=open(f,'w')
+        # self.dict
 
     def loadDict(self, d):
-        self.dict = d
+        self.dict = eval(d)
         pass
 
     def dumpDict(self):
-        return self.dict
+        return eval(str(self.dict))
 
     # my functions
-    def mySplit(self,s):
+    def mySplit(self, s):
         # scan for quotations
         quotation_1 = []
         quotation_2 = []
@@ -186,17 +181,20 @@ class PyLuaTblParser():
                     quotation_stack_1.pop()
                 else:
                     quotation_stack_1.append(i)
-        if len(quotation_stack_1) or  len(quotation_stack_2) :
+        if len(quotation_stack_1) or len(quotation_stack_2):
             raise Exception('lua table string format Error on ""')
+        xstr = s
         for p in quotation_1:
-            
+            xstr = xstr[:p[0]] + xstr[p[0]:p[1] + 1].replace(',', '_').replace(';', '_') + xstr[p[1] + 1:]
         for p in quotation_2:
-
-
+            xstr = xstr[:p[0]] + xstr[p[0]:p[1] + 1].replace(',', '_').replace(';', '_') + xstr[p[1] + 1:]
+        xstr = xstr.replace(';', ',')
+        return xstr.split(',')
 
     def validStr(self, s):
         if len(s) < 2:
             return False
+        s=s.strip()
         if s[0] == '\"' and s[-1] == '\"':
             if s[1:-1].find('\"') > -1:
                 return False
@@ -211,6 +209,12 @@ class PyLuaTblParser():
             return False
 
     def validKey(self, s):
+        if s[0] == '[' and s[-1] == ']':
+            in_str=s[1:-1].strip()
+            if in_str.find(']') > -1 or in_str.find('[')>-1:
+                return False
+            else:
+                return True
         return True
         # if len(s) < 2:
         # return False
