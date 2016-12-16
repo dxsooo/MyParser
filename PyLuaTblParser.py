@@ -10,52 +10,64 @@ class PyLuaTblParser():
 6. dumpDict(self)  返回一个dict，包含类中的数据
     '''
     dict = {}
-    brackets = []
-    brackets_stack = []
 
     def __init__(self):
-        self.brackets = []
-        self.brackets_stack = []
         self.dict = {}
 
     def load(self, s):
-        # brackets
+        brackets_stack = []
+        brackets = []
+
+        # get all valid brackets
+        quotation_stack_1 = []
+        quotation_stack_2 = []
         for i in xrange(0, len(s)):
-            if (s[i] == '{'):
-                self.brackets_stack.append(i)
-            elif (s[i] == '}'):
-                # self.brackets_stack.pop()
-                self.brackets.append((self.brackets_stack[-1], i))
-                self.brackets_stack.pop()
-        if len(self.brackets_stack):
+            if s[i] == '{' and len(quotation_stack_1) == 0 and len(quotation_stack_2) == 0:
+                brackets_stack.append(i)
+            elif s[i] == '}' and len(quotation_stack_1) == 0 and len(quotation_stack_2) == 0:
+                brackets.append((brackets_stack[-1], i))
+                brackets_stack.pop()
+            elif s[i] == '\'':
+                if len(quotation_stack_1) == 1:
+                    quotation_stack_1.pop()
+                else:
+                    quotation_stack_1.append(i)
+            elif s[i] == '\"':
+                if len(quotation_stack_2) == 1:
+                    quotation_stack_2.pop()
+                else:
+                    quotation_stack_2.append(i)
+        if len(brackets_stack):
             raise Exception('lua table string format Error on {}')
-        # print self.brackets_info
-        cur_res={}
-        for i in xrange(0, len(self.brackets)):
-            # cur_res = {}
-            bracket = self.brackets[i]
+
+        # iterate brackets
+        cur_res = {}
+        for i in xrange(0, len(brackets)):
+            cur_bracket = brackets[i]
+            # reverse scan for smaller pre bracket: get the first sub bracket of current bracket
             j = i - 1
             while j > -1:
-                if self.brackets[j][0] < self.brackets[i][0]:
+                if brackets[j][0] < brackets[i][0]:
                     break
                 j -= 1
             j += 1
-            pj_keys=[]
+            # load bracket keys
+            pj_keys = []
             while j != i:
-                pj_keys.append(self.brackets[j][0])
-                j+=1
-                # for bracket in self.brackets:
+                pj_keys.append(brackets[j][0])
+                j += 1
+            # deal with current bracket
             is_list = True
-            str = s[bracket[0] + 1:bracket[1]]
-            ls = str.split(',')
+            str = s[cur_bracket[0] + 1:cur_bracket[1]] # get content
+            ls= self.mySplit(str) # split with separator
             for l in ls:
                 if l.find('=') > -1:
                     is_list = False
-            xstr=str.replace(',','_').replace('=', '_')
-            s=s.replace(str,xstr)
+            xstr = str.replace(',', '_').replace('=', '_')
+            s = s.replace(str, xstr)
             if is_list:
                 rls = []
-                pj_i=0
+                pj_i = 0
                 for l in ls:
                     if l == 'true':
                         b = True
@@ -69,15 +81,15 @@ class PyLuaTblParser():
                     else:
                         if l == '':
                             continue
-                        elif len(l)>1 and l[0]=='{' and l[-1]=='}':
+                        elif len(l) > 1 and l[0] == '{' and l[-1] == '}':
                             rls.append(cur_res[pj_keys[pj_i]])
                             del cur_res[pj_keys[pj_i]]
-                            pj_i+=1
+                            pj_i += 1
                         elif self.validStr(l):
                             rls.append(l[1:-1])
                         # elif l[0]=='\"' and l[-1]=='\"':
-                        #     ts=l[1:-1]
-                        #     if ts.find('\"')>-1:
+                        # ts=l[1:-1]
+                        # if ts.find('\"')>-1:
                         #         raise Exception('lua table string format Error on string')
                         #     rls.append(ts)
                         # elif l[0]=='\'' and l[-1]=='\'':
@@ -129,7 +141,7 @@ class PyLuaTblParser():
                                 rls[lk[0]] = lk[1][1:-1]
                             else:
                                 rls[lk[0]] = eval(lk[1])
-                    # index += 1
+                                # index += 1
             cur_res[bracket[0]] = rls
 
         # if len(cur_res) == 1:
@@ -154,6 +166,34 @@ class PyLuaTblParser():
     def dumpDict(self):
         return self.dict
 
+    # my functions
+    def mySplit(self,s):
+        # scan for quotations
+        quotation_1 = []
+        quotation_2 = []
+        quotation_stack_1 = []
+        quotation_stack_2 = []
+        for i in xrange(0, len(s)):
+            if s[i] == '\"':
+                if len(quotation_stack_2) == 1:
+                    quotation_2.append((quotation_stack_2[-1], i))
+                    quotation_stack_2.pop()
+                else:
+                    quotation_stack_2.append(i)
+            elif s[i] == '\'':
+                if len(quotation_stack_1) == 1:
+                    quotation_1.append((quotation_stack_1[-1], i))
+                    quotation_stack_1.pop()
+                else:
+                    quotation_stack_1.append(i)
+        if len(quotation_stack_1) or  len(quotation_stack_2) :
+            raise Exception('lua table string format Error on ""')
+        for p in quotation_1:
+            
+        for p in quotation_2:
+
+
+
     def validStr(self, s):
         if len(s) < 2:
             return False
@@ -173,9 +213,9 @@ class PyLuaTblParser():
     def validKey(self, s):
         return True
         # if len(s) < 2:
-        #     return False
+        # return False
         # if(s[0]=='\"' and s[-1] == '\"'):
-        #     if s[1:-1].find('\"') > -1:
+        # if s[1:-1].find('\"') > -1:
         #         return False
         #     else:
         #         return True
