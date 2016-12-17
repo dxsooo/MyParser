@@ -12,37 +12,39 @@ class PyLuaTblParser():
     dict = {}
     ori_str=""""""
     cur_valid=""
+    quotations = []
+    quotations_index=-1
+    # quotation_2 = []
 
     def __init__(self):
         self.dict = {}
 
     def load(self, s):
+        # remove useless spaces
+        self.removeSpace(s)
+        s=self.cur_valid
+        print s
+        # update quotations
+        self.scanQuotations(s) # update quotations
+        # remove sensetive char in quotations
+        for pai in self.quotations:
+            s = s[:pai[0]] + s[pai[0]:pai[1]].replace(';', '_').replace(',','_').replace('=','_').replace('{','_').replace('}','_').replace('[','_').replace(']','_') + s[pai[1]:]
+        print s
+        # get all valid brackets
         brackets_stack = []
         brackets = []
-        ori_str=str(s)
-        # get all valid brackets
-        quotation_stack_1 = []
-        quotation_stack_2 = []
-        for i in xrange(0, len(s)):
-            if s[i] == '{' and len(quotation_stack_1) == 0 and len(quotation_stack_2) == 0:
+        i=0
+        while i<len(s):
+            if s[i] == '{':
                 brackets_stack.append(i)
-            elif s[i] == '}' and len(quotation_stack_1) == 0 and len(quotation_stack_2) == 0:
+            elif s[i] == '}':
                 brackets.append((brackets_stack[-1], i))
                 brackets_stack.pop()
-            elif s[i] == '\'':
-                if len(quotation_stack_1) == 1:
-                    quotation_stack_1.pop()
-                else:
-                    quotation_stack_1.append(i)
-            elif s[i] == '\"':
-                if len(quotation_stack_2) == 1:
-                    quotation_stack_2.pop()
-                else:
-                    quotation_stack_2.append(i)
+            i+=1
         if len(brackets_stack):
             raise Exception('lua table string format Error on {}')
 
-        # iterate brackets
+        # Step 3: iterate brackets
         cur_res = {}
         for i in xrange(0, len(brackets)):
             cur_bracket = brackets[i]
@@ -61,7 +63,7 @@ class PyLuaTblParser():
             # deal with current bracket
             is_list = True
             content = s[cur_bracket[0] + 1:cur_bracket[1]]  # get content
-            ls = self.mySplit(content)  # split with separator
+            ls = content.split(',')  # split with separator
             for l in ls:
                 if l.find('=') > -1:
                     is_list = False
@@ -117,28 +119,30 @@ class PyLuaTblParser():
                     else:
                         lk = l.split('=')
                         assert len(lk) == 2
-                        assert self.validKey(lk[0])
+                        cur_key=self.validKey(lk[0])
                         if lk[1] == 'true':
                             b = True
-                            rls[lk[0]] = b
+                            rls[cur_key] = b
                         elif lk[1] == 'false':
                             b = False
-                            rls[lk[0]] = b
+                            rls[cur_key] = b
                         elif lk[1] == 'nil':
                             index += 1
                             continue
                         elif len(lk[1]) > 1 and lk[1][0] == '{' and lk[1][-1] == '}':
-                            rls[lk[0]] = cur_res[pj_keys[pj_i]]
+                            rls[cur_key] = cur_res[pj_keys[pj_i]]
                             del cur_res[pj_keys[pj_i]]
                             pj_i += 1
                         else:
                             if self.validStr(lk[1]):
-                                rls[lk[0]] = lk[1][1:-1].strip()
+                                self.quotations_index+=1
+                                rls[cur_key] = self.cur_valid[self.quotations[self.quotations_index][0]:self.quotations[self.quotations_index][1]+1]
                             else:
-                                rls[lk[0]] = eval(lk[1])
+                                rls[cur_key] = eval(lk[1])
             cur_res[cur_bracket[0]] = rls
             # replace separators
-            s=s[:cur_bracket[0]]+s[cur_bracket[0]:cur_bracket[1]].replace(',','_').replace(';','_')+s[cur_bracket[1]:]
+            s=s[:cur_bracket[0]]+s[cur_bracket[0]:cur_bracket[1]].replace(',','_').replace('=','_')+s[cur_bracket[1]:]
+            print s
 
         for key in cur_res:
             self.dict = cur_res[key]
@@ -194,17 +198,10 @@ class PyLuaTblParser():
     def validStr(self, s):
         if len(s) < 2:
             return False
-        s=s.strip()
         if s[0] == '\"' and s[-1] == '\"':
-            if s[1:-1].find('\"') > -1:
-                return False
-            else:
-                return True
+            return True
         elif s[0] == '\'' and s[-1] != '\'':
-            if s[1:-1].find('\'') > -1:
-                return False
-            else:
-                return True
+            return True
         else:
             return False
 
@@ -230,3 +227,81 @@ class PyLuaTblParser():
         #         return True
         # else:
         #     return False
+    def removeSpace(self,s):
+        # step 1: scan for quotations
+        self.scanQuotations(s)
+        # step 2: iterate unquotation part
+        b1=0
+        b2=0
+        while b2<len(s):
+            hitp=None
+            for pai in self.quotations:
+                if b2 in pai:
+                    hitp=pai
+                    break
+            if hitp!=None:
+                b2=hitp[0]
+                nb1 = hitp[1]
+                noquo = s[b1:b2]
+                # remove useless space of cur noquo
+                temp_valid=noquo
+                temp_valid="{".join(map(lambda x:x.strip(),temp_valid.split('{')))
+                temp_valid ="}".join(map(lambda x:x.strip(),temp_valid.split('}')))
+                temp_valid =",".join(map(lambda x:x.strip(),temp_valid.split(';'))) # replace ; to ,
+                temp_valid =",".join(map(lambda x:x.strip(),temp_valid.split(',')))
+                temp_valid ="=".join(map(lambda x:x.strip(),temp_valid.split('=')))
+                temp_valid = "[".join(map(lambda x: x.strip(), temp_valid.split('[')))
+                temp_valid = "]".join(map(lambda x: x.strip(), temp_valid.split(']')))
+                self.cur_valid+=temp_valid+s[b2:nb1]
+                b1=nb1
+                b2=b1
+            b2+=1
+        # last noquo
+        noquo = s[b1:b2]
+        # remove useless space of cur noquo
+        temp_valid = noquo
+        temp_valid = "{".join(map(lambda x: x.strip(), temp_valid.split('{')))
+        temp_valid = "}".join(map(lambda x: x.strip(), temp_valid.split('}')))
+        temp_valid = ",".join(map(lambda x: x.strip(), temp_valid.split(';')))
+        temp_valid = ",".join(map(lambda x: x.strip(), temp_valid.split(',')))
+        temp_valid = "=".join(map(lambda x: x.strip(), temp_valid.split('=')))
+        temp_valid = "[".join(map(lambda x: x.strip(), temp_valid.split('[')))
+        temp_valid = "]".join(map(lambda x: x.strip(), temp_valid.split(']')))
+        self.cur_valid += temp_valid
+        self.ori_str=self.cur_valid
+
+    def scanQuotations(self,s):
+        quotation_1 = []
+        quotation_2 = []
+        quotation_stack_1 = []
+        quotation_stack_2 = []
+        for i in xrange(0, len(s)):
+            if s[i] == '\"':
+                if len(quotation_stack_2) == 1:
+                    if len(quotation_stack_1) ==0:
+                        quotation_2.append((quotation_stack_2[-1], i))
+                        quotation_stack_2.pop()
+                    elif len(quotation_stack_1) > 0 and quotation_stack_1[-1] > quotation_stack_2[-1]:
+                        quotation_stack_1 = []
+                        quotation_2.append((quotation_stack_2[-1], i))
+                        quotation_stack_2.pop()
+                    elif len(quotation_stack_1) > 0 and quotation_stack_1[-1] < quotation_stack_2[-1]:
+                        quotation_stack_2.pop()
+                else:
+                    quotation_stack_2.append(i)
+            elif s[i] == '\'':
+                if len(quotation_stack_1) == 1:
+                    if len(quotation_stack_2) ==0:
+                        quotation_1.append((quotation_stack_1[-1], i))
+                        quotation_stack_1.pop()
+                    elif len(quotation_stack_2) > 0 and quotation_stack_2[-1] > quotation_stack_1[-1]:
+                        quotation_stack_2 = []
+                        quotation_1.append((quotation_stack_1[-1], i))
+                        quotation_stack_1.pop()
+                    elif len(quotation_stack_2) > 0 and quotation_stack_2[-1] < quotation_stack_1[-1]:
+                        quotation_stack_1.pop()
+                else:
+                    quotation_stack_1.append(i)
+        if len(quotation_stack_1) or len(quotation_stack_2):
+            raise Exception('lua table string format Error on quotations')
+        self.quotations=quotation_1+quotation_2
