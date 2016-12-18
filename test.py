@@ -31,26 +31,8 @@ space = " ",
 quote = "\"",
 backslash = "\\",  --499 502
 controls = "\b\f\n\r\t",  --520 540
-slash = "/ & \\",
-alpha= "abcdefghijklmnopqrstuvwyz",
-ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWYZ",
-digit = "0123456789",
-special = "`1~!@#$%^&*()_+-={\':[,]}|;.</>?",
-hex = "0x01230x45670x89AB0xCDEF0xabcd0xef4A",
-["true"] = true,
-["false"] = false,
-["nil"] = nil,
-array = {nil, nil,},
-object = {  },
-address = "50 St. James Street",
-url = "http://www.JSON.org/",
-comment = "// /* <!-- --",
-["# -- --> */"] = "",
-[" s p a c e d " ] = {1,2 , 3,
-4 , 5        ,          6           ,7        },
-0.5 ,31415926535897932384626433832795028841971693993751058209749445923.
-,
-1066,"rosebud"
+["\"\b\f\n\r\t`1~!@#$%^&*()_+-=[]{}|;:\',./<>?"]
+= "A key can be any string"
 }
 }
 }"""

@@ -126,6 +126,7 @@ class PyLuaTblParser():
                             b = False
                             rls[index] = b
                         elif l == 'nil':
+                            index+=1
                             continue
                         else:
                             if l == '':
@@ -158,7 +159,7 @@ class PyLuaTblParser():
                             try:
                                 raise Exception("error key")
                             except:
-                                self.selfRecur(self.oristr, 1000)
+                                self.selfRecur(self.oristr, 0)
                         else:
                             cur_key = lk[0]
 
@@ -200,9 +201,10 @@ class PyLuaTblParser():
         self.load(in_str)
 
     def dumpLuaTable(self, f):
+        # print str(self.dict)
         ss = self.genStr(self.dict)
         fw = open(f,'w')
-        fw.write(ss)
+        fw.write("%s"%ss)
         fw.close()
 
     def loadDict(self, d):
@@ -236,8 +238,11 @@ class PyLuaTblParser():
                 return 'true'
         else:
             if isinstance(d, str):
-                d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace('\\"','\"').replace("\\'",'\'').replace("\\\\",'\\')
-                return repr(d)
+                # print d
+                d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace('\\"',"\"").replace("\\'","\'").replace("\\\\",'\\')
+                # d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace("\\\\",'\\')
+                return "%r"%d
+                # return
 
     def validStr(self, s):
         if len(s) < 2:
@@ -345,6 +350,7 @@ class PyLuaTblParser():
     def removeComment(self,s):
         state = 'Empty'
         self.cur_valid = ''
+        ctype=1
         i=0
         while i<len(s):
             if state=='Empty':
@@ -358,14 +364,21 @@ class PyLuaTblParser():
                     self.cur_valid += s[i]
             elif state=='Ready':
                 if s[i]=='-':
+                    if s[i+1:i+3]=='[[':
+                        ctype=2
+                    else:
+                        ctype=1
                     state = 'Begin'
                 else:
                     state='Empty'
                     self.cur_valid += s[i-1]
                     self.cur_valid += s[i]
             elif state=='Begin':
-                if s[i]=='\n':
+                if ctype==1 and s[i]=='\n':
                     state='Empty'
+                elif ctype==2 and s[i:i+2]==']]':
+                    state='Empty'
+                    i+=1
             i+=1
 
     def selfRecur(self, s, idx):
