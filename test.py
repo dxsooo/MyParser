@@ -4,7 +4,39 @@ a1 = PyLuaTblParser()
 a2 = PyLuaTblParser()
 a3 = PyLuaTblParser()
 
-test_str = '{array = {65,23,5,},dict = {mixed = {43,54.33,false,9,string = "value",},array = {3,6,4,},string = "value",},}'
+# test_str = '{array = {65,23,5,},--dict = {mixed = {43,54.33,false,9,string = "value",},array = {3,6,4,},string = "value",},\n}'
+test_str="""
+{
+root = {{
+alpha= "abcdefghijklmnopqrstuvwyz",
+array = {nil, nil,},
+object = {  },
+["# -- --> */"] = "",
+}}}"""
+# slash = "/ & \\",
+# alpha= "abcdefghijklmnopqrstuvwyz",
+# ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWYZ",
+# digit = "0123456789",
+# special = "`1~!@#$%^&*()_+-={\':[,]}|;.</>?",
+# hex = "0x01230x45670x89AB0xCDEF0xabcd0xef4A",
+# ["true"] = true,
+# ["false"] = false,
+# ["nil"] = nil,
+# array = {nil, nil,},
+# object = {  },
+# address = "50 St. James Street",
+# url = "http://www.JSON.org/",
+# comment = "// /* <!-- --",
+# ["# -- --> */"] = "",
+# }
+# }
+# }
+# """
+# test_str="""
+# {
+# [94] = { {["1"]=1, ["2"]=2}, {1, ["2"]=2}, ["3"] = 3 }
+# }
+# """
 a1.load(test_str)
 d1 = a1.dumpDict()
 file_path='lua.tbl'

@@ -14,17 +14,35 @@ class PyLuaTblParser():
         self.dict = {}
         self.quotations = []
         self.cur_valid = ""
+        self.oristr = ""
 
     def load(self, s):
+        self.oristr = s
+        self.scanQuotations(s)
+        # remove sensitive char in quotations 1
+        for pai in self.quotations:
+            s = s[:pai[0]] + s[pai[0]:pai[1]].replace('--', '__') \
+                + s[pai[1]:]
+        self.removeComment(s)
+        s = self.cur_valid
         # remove useless spaces
         self.removeSpace(s)
         s = self.cur_valid
         # update quotations
-        self.scanQuotations(s)  # update quotations
-        # remove sensitive char in quotations
+        self.scanQuotations(s)
+        # remove sensitive char in quotations 1
+        # for pai in self.quotations:
+        #     s = s[:pai[0]] + s[pai[0]:pai[1]].replace('--','__') \
+        #         + s[pai[1]:]
+        # self.removeComment(s)
+        # s = self.cur_valid
+        # update quotations
+        # self.scanQuotations(s)
+        # remove sensitive char in quotations 2
         for pai in self.quotations:
             s = s[:pai[0]] + s[pai[0]:pai[1]].replace(',', '_').replace('=', '_').replace('{', '_').replace('}', '_') \
                 + s[pai[1]:]
+
         # get all valid brackets
         brackets_stack = []
         brackets = []
@@ -36,8 +54,11 @@ class PyLuaTblParser():
                 brackets.append((brackets_stack[-1], i))
                 brackets_stack.pop()
             i += 1
-        if len(brackets_stack):
-            raise Exception('lua table string format Error on {}')
+        try:
+            if len(brackets_stack):
+                raise Exception('lua table string format Error on {}')
+        except:
+            self.selfRecur(self.oristr, 0)
 
         # Step 3: iterate brackets
         cur_res = {}
@@ -119,6 +140,10 @@ class PyLuaTblParser():
                         else:
                             if l == '':
                                 continue
+                            elif len(l) > 1 and l[0] == '{' and l[-1] == '}':
+                                rls[index] = cur_res[pj_keys[pj_i]]
+                                del cur_res[pj_keys[pj_i]]
+                                pj_i += 1
                             elif self.validStr(l):
                                 ori = self.cur_valid[
                                       content_quotations[quo_index][0] + 1:content_quotations[quo_index][1]]
@@ -223,12 +248,13 @@ class PyLuaTblParser():
             return False
         if s[0] == '\"' and s[-1] == '\"':
             return True
-        elif s[0] == '\'' and s[-1] != '\'':
+        elif s[0] == '\'' and s[-1] == '\'':
             return True
         else:
             return False
 
     def removeSpace(self, s):
+        self.cur_valid=''
         # step 1: scan for quotations
         self.scanQuotations(s)
         # step 2: iterate unquotation part
@@ -271,6 +297,8 @@ class PyLuaTblParser():
         self.cur_valid += temp_valid
 
     def scanQuotations(self, s):
+        # s=s.encode('hex')
+        # s=repr(s)
         quotation_1 = []
         quotation_2 = []
         quotation_stack_1 = []
@@ -305,3 +333,540 @@ class PyLuaTblParser():
         if len(quotation_stack_1) or len(quotation_stack_2):
             raise Exception('lua table string format Error on quotations')
         self.quotations = quotation_1 + quotation_2
+
+    def removeComment(self,s):
+        state = 'Empty'
+        self.cur_valid = ''
+        for i in xrange(0,len(s)):
+            if state=='Empty':
+                if s[i]=='-':
+                    state = 'Ready'
+                else:
+                    self.cur_valid +=s[i]
+            elif state=='Ready':
+                if s[i]=='-':
+                    state = 'Begin'
+                    bpos=i-1
+                else:
+                    state='Empty'
+                    self.cur_valid += s[i]
+            elif state=='Begin':
+                if s[i]=='\n':
+                    state='Empty'
+                    # comment_part.append((bpos,i))
+
+    def selfRecur(self, s, idx):
+        if idx >= len(s):
+            raise Exception, "len exceed"
+        if s[idx] == '\x00':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x01':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x02':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x03':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x04':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x05':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x06':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x07':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x08':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\t':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\n':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x0b':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x0c':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\r':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x0e':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x0f':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x10':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x11':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x12':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x13':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x14':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x15':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x16':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x17':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x18':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x19':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x1a':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x1b':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x1c':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x1d':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x1e':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x1f':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == ' ':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '!':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '"':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '#':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '$':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '%':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '&':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == "'":
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '(':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == ')':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '*':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '+':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == ',':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '-':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '.':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '/':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '0':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '1':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '2':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '3':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '4':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '5':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '6':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '7':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '8':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '9':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == ':':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == ';':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '<':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '=':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '>':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '?':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '@':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'A':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'B':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'C':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'D':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'E':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'F':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'G':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'H':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'I':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'J':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'K':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'L':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'M':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'N':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'O':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'P':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'Q':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'R':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'S':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'T':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'U':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'V':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'W':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'X':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'Y':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'Z':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '[':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\\':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == ']':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '^':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '_':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '`':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'a':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'b':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'c':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'd':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'e':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'f':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'g':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'h':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'i':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'j':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'k':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'l':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'm':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'n':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'o':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'p':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'q':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'r':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 's':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 't':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'u':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'v':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'w':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'x':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'y':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == 'z':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '{':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '|':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '}':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '~':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x7f':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x80':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x81':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x82':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x83':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x84':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x85':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x86':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x87':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x88':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x89':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x8a':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x8b':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x8c':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x8d':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x8e':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x8f':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x90':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x91':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x92':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x93':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x94':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x95':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x96':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x97':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x98':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x99':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x9a':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x9b':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x9c':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x9d':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x9e':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\x9f':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa0':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa1':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa2':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa3':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa4':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa5':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa6':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa7':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa8':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xa9':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xaa':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xab':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xac':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xad':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xae':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xaf':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb0':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb1':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb2':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb3':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb4':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb5':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb6':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb7':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb8':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xb9':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xba':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xbb':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xbc':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xbd':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xbe':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xbf':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc0':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc1':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc2':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc3':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc4':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc5':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc6':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc7':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc8':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xc9':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xca':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xcb':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xcc':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xcd':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xce':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xcf':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd0':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd1':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd2':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd3':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd4':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd5':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd6':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd7':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd8':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xd9':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xda':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xdb':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xdc':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xdd':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xde':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xdf':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe0':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe1':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe2':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe3':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe4':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe5':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe6':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe7':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe8':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xe9':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xea':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xeb':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xec':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xed':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xee':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xef':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf0':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf1':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf2':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf3':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf4':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf5':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf6':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf7':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf8':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xf9':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xfa':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xfb':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xfc':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xfd':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xfe':
+            self.selfRecur(s, idx + 1)
+        elif s[idx] == '\xff':
+            self.selfRecur(s, idx + 1)
