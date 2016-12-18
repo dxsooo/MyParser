@@ -19,26 +19,17 @@ class PyLuaTblParser():
     def load(self, s):
         self.oristr = s
         self.scanQuotations(s)
-        # remove sensitive char in quotations 1
-        for pai in self.quotations:
-            s = s[:pai[0]] + s[pai[0]:pai[1]].replace('--', '__') \
-                + s[pai[1]:]
+        # remove comments
         self.removeComment(s)
         s = self.cur_valid
+        # update quotations
+        self.scanQuotations(s)
         # remove useless spaces
         self.removeSpace(s)
         s = self.cur_valid
         # update quotations
         self.scanQuotations(s)
-        # remove sensitive char in quotations 1
-        # for pai in self.quotations:
-        #     s = s[:pai[0]] + s[pai[0]:pai[1]].replace('--','__') \
-        #         + s[pai[1]:]
-        # self.removeComment(s)
-        # s = self.cur_valid
-        # update quotations
-        # self.scanQuotations(s)
-        # remove sensitive char in quotations 2
+        # remove sensitive char in quotations
         for pai in self.quotations:
             s = s[:pai[0]] + s[pai[0]:pai[1]].replace(',', '_').replace('=', '_').replace('{', '_').replace('}', '_') \
                 + s[pai[1]:]
@@ -54,11 +45,8 @@ class PyLuaTblParser():
                 brackets.append((brackets_stack[-1], i))
                 brackets_stack.pop()
             i += 1
-        try:
-            if len(brackets_stack):
-                raise Exception('lua table string format Error on {}')
-        except:
-            self.selfRecur(self.oristr, 0)
+        if len(brackets_stack):
+            raise Exception('lua table string format Error on {}')
 
         # Step 3: iterate brackets
         cur_res = {}
@@ -88,12 +76,14 @@ class PyLuaTblParser():
             for pp in self.quotations:
                 if pp[0] >= cur_bracket[0] and pp[1] < cur_bracket[1]:
                     content_quotations.append(pp)
-            self.quotations = list(set(self.quotations) - set(content_quotations))
+            # update remainder quotations
+            self.quotations = sorted(list(set(self.quotations)-set(content_quotations)))
             quo_index = 0
             ls = content.split(',')  # split with separator
             for l in ls:
                 if l.find('=') > -1:
                     is_list = False
+                    break
             if is_list:
                 rls = []
                 pj_i = 0
@@ -165,7 +155,10 @@ class PyLuaTblParser():
                             else:
                                 cur_key = eval(in_str)
                         elif lk[0].find(' ') != -1:
-                            raise Exception("error key")
+                            try:
+                                raise Exception("error key")
+                            except:
+                                self.selfRecur(self.oristr, 1000)
                         else:
                             cur_key = lk[0]
 
@@ -203,11 +196,12 @@ class PyLuaTblParser():
         return str(self.dict)
 
     def loadLuaTable(self, f):
-        self.load(open(f).read())
+        in_str=open(f).read()
+        self.load(in_str)
 
     def dumpLuaTable(self, f):
         ss = self.genStr(self.dict)
-        fw = open(f, 'wb')
+        fw = open(f,'w')
         fw.write(ss)
         fw.close()
 
@@ -233,7 +227,7 @@ class PyLuaTblParser():
             return res_str
         elif isinstance(d, type(None)):
             return 'nil'
-        elif isinstance(d, float) or isinstance(d, int):
+        elif isinstance(d, float) or isinstance(d, int) or isinstance(d, long):
             return str(d)
         elif isinstance(d, bool):
             if d == False:
@@ -241,7 +235,9 @@ class PyLuaTblParser():
             else:
                 return 'true'
         else:
-            return repr(d)
+            if isinstance(d, str):
+                d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace('\\"','\"').replace("\\'",'\'').replace("\\\\",'\\')
+                return repr(d)
 
     def validStr(self, s):
         if len(s) < 2:
@@ -255,9 +251,7 @@ class PyLuaTblParser():
 
     def removeSpace(self, s):
         self.cur_valid=''
-        # step 1: scan for quotations
-        self.scanQuotations(s)
-        # step 2: iterate unquotation part
+        # iterate unquotation part
         b1 = 0
         b2 = 0
         while b2 < len(s):
@@ -297,13 +291,27 @@ class PyLuaTblParser():
         self.cur_valid += temp_valid
 
     def scanQuotations(self, s):
-        # s=s.encode('hex')
-        # s=repr(s)
         quotation_1 = []
         quotation_2 = []
         quotation_stack_1 = []
         quotation_stack_2 = []
+        in_esca=False
+        x_cnt=0
         for i in xrange(0, len(s)):
+            if s[i] == '\\' and not in_esca:
+                in_esca = True
+                continue
+            if in_esca:
+                if s[i] in ['\'','\"','\\','b','t','r','n','f']:
+                    in_esca = False
+                    continue
+                elif s[i]=='x' or x_cnt>0:
+                    x_cnt+=1
+                    if x_cnt==3:
+                        x_cnt=0
+                    continue
+                else:
+                    raise Exception('lua table string format Error on escape')
             if s[i] == '\"':
                 if len(quotation_stack_2) == 1:
                     if len(quotation_stack_1) == 0:
@@ -332,28 +340,33 @@ class PyLuaTblParser():
                     quotation_stack_1.append(i)
         if len(quotation_stack_1) or len(quotation_stack_2):
             raise Exception('lua table string format Error on quotations')
-        self.quotations = quotation_1 + quotation_2
+        self.quotations = sorted(quotation_1 + quotation_2)
 
     def removeComment(self,s):
         state = 'Empty'
         self.cur_valid = ''
-        for i in xrange(0,len(s)):
+        i=0
+        while i<len(s):
             if state=='Empty':
                 if s[i]=='-':
                     state = 'Ready'
                 else:
-                    self.cur_valid +=s[i]
+                    for pai in self.quotations:
+                        if i == pai[0]:
+                            self.cur_valid +=s[i:pai[1]]
+                            i=pai[1]
+                    self.cur_valid += s[i]
             elif state=='Ready':
                 if s[i]=='-':
                     state = 'Begin'
-                    bpos=i-1
                 else:
                     state='Empty'
+                    self.cur_valid += s[i-1]
                     self.cur_valid += s[i]
             elif state=='Begin':
                 if s[i]=='\n':
                     state='Empty'
-                    # comment_part.append((bpos,i))
+            i+=1
 
     def selfRecur(self, s, idx):
         if idx >= len(s):
