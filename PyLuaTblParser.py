@@ -19,6 +19,10 @@ class PyLuaTblParser():
     def load(self, s):
         self.oristr = s
         self.scanQuotations(s)
+        # make escapes
+        # self.makeEscapes(s)
+        # s=self.cur_valid
+        # print s
         # remove comments
         self.removeComment(s)
         s = self.cur_valid
@@ -29,6 +33,9 @@ class PyLuaTblParser():
         s = self.cur_valid
         # update quotations
         self.scanQuotations(s)
+        # make escapes
+        self.makeEscapes2(s)
+        s=self.cur_valid
         # remove sensitive char in quotations
         for pai in self.quotations:
             s = s[:pai[0]] + s[pai[0]:pai[1]].replace(',', '_').replace('=', '_').replace('{', '_').replace('}', '_') \
@@ -239,10 +246,10 @@ class PyLuaTblParser():
         else:
             if isinstance(d, str):
                 # print d
-                d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace('\\"',"\"").replace("\\'","\'").replace("\\\\",'\\')
+                # d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace('\\"',"\"").replace("\\'","\'").replace("\\\\",'\\')
                 # d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace("\\\\",'\\')
-                return "%r"%d
-                # return
+                # return "%r"%d
+                return "\""+d+"\""
 
     def validStr(self, s):
         if len(s) < 2:
@@ -346,6 +353,72 @@ class PyLuaTblParser():
         if len(quotation_stack_1) or len(quotation_stack_2):
             raise Exception('lua table string format Error on quotations')
         self.quotations = sorted(quotation_1 + quotation_2)
+
+    escape_map={'\'':'\'','\"':'\"','\\':'\\','b':'\b','t':'\t','n':'\n','f':'\f','r':'\r'}
+
+    def makeEscapes2(self,s):
+        self.cur_valid=s
+        # cnt=0
+        for j in xrange(0,len(self.quotations)):
+            p=self.quotations[j]
+            sub_str=self.cur_valid[p[0]:p[1]]
+            n_sub_str=''
+            i=0
+            in_esca = False
+            cnt=0
+            while i<len(sub_str):
+                if sub_str[i] == '\\' and not in_esca:
+                    in_esca = True
+                    cnt+=1
+                elif in_esca:
+                    if sub_str[i] in ['\'', '\"', '\\', 'b', 't', 'r', 'n', 'f']:
+                        in_esca = False
+                        n_sub_str += self.escape_map[sub_str[i]]
+                    elif sub_str[i] == 'x':
+                        in_esca = False
+                        n_sub_str += '\\' + sub_str[i:i + 3]
+                        i += 3
+                        continue
+                    else:
+                        raise Exception('lua table string format Error on escape')
+                else:
+                    n_sub_str += sub_str[i]
+                i += 1
+            self.cur_valid=self.cur_valid[:p[0]]+n_sub_str+self.cur_valid[p[1]:]
+            self.quotations[j] = (p[0], p[1] - cnt)
+            for k in range(j+1,len(self.quotations)):
+                self.quotations[k]=(self.quotations[k][0]-cnt,self.quotations[k][1]-cnt)
+
+
+    def makeEscapes(self,s):
+        self.cur_valid=''
+        i=0
+        in_esca=False
+        while i<len(s):
+            if s[i] == '\\' and not in_esca:
+                in_esca = True
+                for j in xrange(0,len(self.quotations)):
+                    if i<self.quotations[j][0]:
+                        old_tuple=self.quotations[j]
+                        self.quotations[j]=(old_tuple[0]-1,old_tuple[1]-1)
+                    elif i<self.quotations[j][1]:
+                        old_tuple = self.quotations[j]
+                        self.quotations[j] = (old_tuple[0], old_tuple[1] - 1)
+            elif in_esca:
+                if s[i] in ['\'','\"','\\','b','t','r','n','f']:
+                    in_esca = False
+                    self.cur_valid +=self.escape_map[s[i]]
+                elif s[i]=='x':
+                    in_esca = False
+                    self.cur_valid += '\\'+s[i:i+3]
+                    i+=3
+                    continue
+                else:
+                    raise Exception('lua table string format Error on escape')
+            else:
+                self.cur_valid +=s[i]
+            i+=1
+
 
     def removeComment(self,s):
         state = 'Empty'
