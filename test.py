@@ -40,12 +40,14 @@ a1.load(test_str)
 d1 = a1.dumpDict()
 file_path='lua.tbl'
 print d1
+# print d1['root'][7][u'\\"\x08\x0c\n\r\t`1~!@#$%^&*()_+-=[]{}|;:\',./<>?']
 a2.loadDict(d1)
 a2.dumpLuaTable(file_path)
 a3.loadLuaTable(file_path)
 
 d3 = a3.dumpDict()
 print d3
+# print d3['root'][7][u'"\\x08\\x0c\\n\\r\\t`1~!@#$%^&*()_+-=[]{}|;:\\\',./<>?']
 
 # a1 = PyLuaTblParser()
 # a2 = PyLuaTblParser()

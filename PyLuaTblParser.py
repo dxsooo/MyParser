@@ -198,7 +198,7 @@ class PyLuaTblParser():
 
     def loadLuaTable(self, f):
         in_str=open(f).read()
-        self.load(in_str)
+        self.load("%r"%in_str)
 
     def dumpLuaTable(self, f):
         # print str(self.dict)
@@ -241,7 +241,7 @@ class PyLuaTblParser():
                 # print d
                 d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace('\\"',"\"").replace("\\'","\'").replace("\\\\",'\\')
                 # d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace("\\\\",'\\')
-                return "%r"%d
+                return repr(d)
                 # return
 
     def validStr(self, s):
