@@ -1,3 +1,1 @@
-{["root"]={"Test Pattern String",{["object with 1 member"]={"array with 1 element",},},nil,{[""
-	`1~!@#$%^&*()_+-=[]{}|;:',./<>?"]="A key can be any string",["integer"]=1234567890,["backslash"]="\",["controls"]="
-	",["quote"]=""",},},}
+{['root']={{['"\x08\x0c\n\r\t`1~!@#$%^&*()_+-=[]{}|;:\',./<>?']='A key can be any string',['quote']='"',['backslash']='\\',['controls']='\x08\x0c\n\r\t',},},}

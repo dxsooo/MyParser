@@ -8,23 +8,22 @@ a3 = PyLuaTblParser()
 test_str=r"""
 {
 root = {
-"Test Pattern String",
--- {"object with 1 member" = {"array with 1 element",},},
-{["object with 1 member"] = {"array with 1 element",},},
-nil,  {
-["integer"]= 1234567890,  --355 363
+
 quote = "\"",
 backslash = "\\",  --499 502
 controls = "\b\f\n\r\t",  --520 540
 ["\"\b\f\n\r\t`1~!@#$%^&*()_+-=[]{}|;:\',./<>?"]
 = "A key can be any string"
-}
+
 }
 }"""
 a1.load(test_str)
 d1 = a1.dumpDict()
 file_path='lua.tbl'
 print d1
+print d1['root']
+print d1[u'root']
+print d1['root']['\\"\x08\x0c\n\r\t`1~!@#$%^&*()_+-=[]{}|;:\',./<>?']
 a2.loadDict(d1)
 a2.dumpLuaTable(file_path)
 a3.loadLuaTable(file_path)

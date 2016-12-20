@@ -1,13 +1,8 @@
-﻿# -*- coding:utf-8 -*-
+﻿
 
 class PyLuaTblParser():
     '''
-1. load(self, s)    读取Lua table数据，输入s为一个符合Lua table定义的字符串，无返回值；若遇到Lua table格式错误抛出异常；
-2. dump(self)  根据类中数据返回Lua table字符串
-3. loadLuaTable(self, f)  从文件中读取Lua table字符串，f为文件路径，异常处理同1，文件操作失败抛出异常；
-4. dumpLuaTable(self, f) 将类中的内容以Lua table格式存入文件，f为文件路径，文件若存在则覆盖，文件操作失败抛出异常；
-5. loadDict(self, d)   读取dict中的数据，存入类中，只处理数字和字符串两种类型的key，其他类型的key直接忽略；
-6. dumpDict(self)  返回一个dict，包含类中的数据
+
     '''
 
     def __init__(self):
@@ -15,6 +10,7 @@ class PyLuaTblParser():
         self.quotations = []
         self.cur_valid = ""
         self.oristr = ""
+        self.is_from_file=False
 
     def load(self, s):
         self.oristr = s
@@ -34,8 +30,46 @@ class PyLuaTblParser():
         # update quotations
         self.scanQuotations(s)
         # make escapes
-        self.makeEscapes2(s)
-        s=self.cur_valid
+        # self.makeEscapes2(s)
+        # s=self.cur_valid
+
+        if self.is_from_file:
+            for pai in self.quotations:
+                if self.cur_valid[pai[0]]=='\'':
+                    orione=self.cur_valid[pai[0]:pai[1]]
+                    # orilen=len(orione)
+                    nowone=orione.replace('\"','\\"')
+                    nowone = nowone.replace("\\'", '\'')
+                    nowone = nowone.replace("\\x08", '\b')
+                    nowone = nowone.replace("\\x0c", '\f')
+                    nowone = nowone.replace("\\n", '\n')
+                    nowone = nowone.replace("\\t", '\t')
+                    nowone = nowone.replace("\\r", '\r')
+                    difflen=len(nowone)-len(orione)
+                    j=self.quotations.index(pai)
+                    self.cur_valid = self.cur_valid[:pai[0]] + nowone + self.cur_valid[pai[1]:]
+                    self.quotations[j]=(pai[0],pai[1]+difflen)
+                    for k in range(j+1,len(self.quotations)):
+                        self.quotations[k] = (self.quotations[k][0]+difflen, self.quotations[k][1] + difflen)
+                elif self.cur_valid[pai[0]]=='\"':
+                    orione=self.cur_valid[pai[0]:pai[1]]
+                    # orilen=len(orione)
+                    nowone=orione.replace('\'',"\\'")
+                    nowone = nowone.replace('\\"', '\"')
+                    nowone = nowone.replace("\\x08", '\b')
+                    nowone = nowone.replace("\\x0c", '\f')
+                    nowone = nowone.replace("\\n", '\n')
+                    nowone = nowone.replace("\\t", '\t')
+                    nowone = nowone.replace("\\r", '\r')
+                    difflen=len(nowone)-len(orione)
+                    j=self.quotations.index(pai)
+                    self.cur_valid = self.cur_valid[:pai[0]] + nowone + self.cur_valid[pai[1]:]
+                    self.quotations[j]=(pai[0],pai[1]+difflen)
+                    for k in range(j+1,len(self.quotations)):
+                        self.quotations[k] = (self.quotations[k][0]+difflen, self.quotations[k][1] + difflen)
+
+            s=self.cur_valid
+
         # remove sensitive char in quotations
         for pai in self.quotations:
             s = s[:pai[0]] + s[pai[0]:pai[1]].replace(',', '_').replace('=', '_').replace('{', '_').replace('}', '_') \
@@ -205,7 +239,13 @@ class PyLuaTblParser():
 
     def loadLuaTable(self, f):
         in_str=open(f).read()
-        self.load(in_str)
+        # ss=in_str.replace('\"','\\"')
+        self.is_from_file=True
+        # print in_str
+        try:
+            self.load("%s"%(in_str))
+        except:
+            self.selfRecur(in_str,0)
 
     def dumpLuaTable(self, f):
         # print str(self.dict)
@@ -249,7 +289,8 @@ class PyLuaTblParser():
                 # d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace('\\"',"\"").replace("\\'","\'").replace("\\\\",'\\')
                 # d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace("\\\\",'\\')
                 # return "%r"%d
-                return "\""+d+"\""
+                return repr(d)
+                # return "\""+d+"\""
 
     def validStr(self, s):
         if len(s) < 2:
