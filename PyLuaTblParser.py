@@ -30,8 +30,8 @@ class PyLuaTblParser():
         # update quotations
         self.scanQuotations(s)
         # make escapes
-        # self.makeEscapes2(s)
-        # s=self.cur_valid
+        self.makeEscapes2(s)
+        s=self.cur_valid
 
         if self.is_from_file:
             for pai in self.quotations:
@@ -240,18 +240,18 @@ class PyLuaTblParser():
     def loadLuaTable(self, f):
         in_str=open(f).read()
         # ss=in_str.replace('\"','\\"')
-        self.is_from_file=True
-        # print in_str
-        try:
-            self.load("%s"%(in_str))
-        except:
-            self.selfRecur(in_str,0)
+        # self.is_from_file=True
+        self.load(in_str)
+        # try:
+            # self.load("%s"%(in_str))
+        # except:
+            # self.selfRecur(in_str,0)
 
     def dumpLuaTable(self, f):
         # print str(self.dict)
         ss = self.genStr(self.dict)
         fw = open(f,'w')
-        fw.write("%s"%ss)
+        fw.write(ss)
         fw.close()
 
     def loadDict(self, d):
@@ -395,7 +395,7 @@ class PyLuaTblParser():
             raise Exception('lua table string format Error on quotations')
         self.quotations = sorted(quotation_1 + quotation_2)
 
-    escape_map={'\'':'\'','\"':'\"','\\':'\\','b':'\b','t':'\t','n':'\n','f':'\f','r':'\r'}
+    escape_map={'\'':'\'','\"':'\"','\\':'\\','b':'\b','t':'\t','n':'\n','f':'\f','r':'\r','x08':'\b','x0c':'\f'}
 
     def makeEscapes2(self,s):
         self.cur_valid=s
@@ -417,8 +417,10 @@ class PyLuaTblParser():
                         n_sub_str += self.escape_map[sub_str[i]]
                     elif sub_str[i] == 'x':
                         in_esca = False
-                        n_sub_str += '\\' + sub_str[i:i + 3]
+                        # n_sub_str += '\\' + sub_str[i:i + 3]
+                        n_sub_str += self.escape_map[sub_str[i:i + 3]]
                         i += 3
+                        cnt += 2
                         continue
                     else:
                         raise Exception('lua table string format Error on escape')
