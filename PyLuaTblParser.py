@@ -1,24 +1,15 @@
-﻿
-
-class PyLuaTblParser():
+﻿class PyLuaTblParser():
     '''
-
+    PyLuaTblparser
     '''
 
     def __init__(self):
         self.dict = {}
         self.quotations = []
-        self.cur_valid = ""
-        self.oristr = ""
-        self.is_from_file=False
+        self.cur_valid = ''
 
     def load(self, s):
-        self.oristr = s
         self.scanQuotations(s)
-        # make escapes
-        # self.makeEscapes(s)
-        # s=self.cur_valid
-        # print s
         # remove comments
         self.removeComment(s)
         s = self.cur_valid
@@ -30,45 +21,8 @@ class PyLuaTblParser():
         # update quotations
         self.scanQuotations(s)
         # make escapes
-        self.makeEscapes2(s)
-        s=self.cur_valid
-
-        if self.is_from_file:
-            for pai in self.quotations:
-                if self.cur_valid[pai[0]]=='\'':
-                    orione=self.cur_valid[pai[0]:pai[1]]
-                    # orilen=len(orione)
-                    nowone=orione.replace('\"','\\"')
-                    nowone = nowone.replace("\\'", '\'')
-                    nowone = nowone.replace("\\x08", '\b')
-                    nowone = nowone.replace("\\x0c", '\f')
-                    nowone = nowone.replace("\\n", '\n')
-                    nowone = nowone.replace("\\t", '\t')
-                    nowone = nowone.replace("\\r", '\r')
-                    difflen=len(nowone)-len(orione)
-                    j=self.quotations.index(pai)
-                    self.cur_valid = self.cur_valid[:pai[0]] + nowone + self.cur_valid[pai[1]:]
-                    self.quotations[j]=(pai[0],pai[1]+difflen)
-                    for k in range(j+1,len(self.quotations)):
-                        self.quotations[k] = (self.quotations[k][0]+difflen, self.quotations[k][1] + difflen)
-                elif self.cur_valid[pai[0]]=='\"':
-                    orione=self.cur_valid[pai[0]:pai[1]]
-                    # orilen=len(orione)
-                    nowone=orione.replace('\'',"\\'")
-                    nowone = nowone.replace('\\"', '\"')
-                    nowone = nowone.replace("\\x08", '\b')
-                    nowone = nowone.replace("\\x0c", '\f')
-                    nowone = nowone.replace("\\n", '\n')
-                    nowone = nowone.replace("\\t", '\t')
-                    nowone = nowone.replace("\\r", '\r')
-                    difflen=len(nowone)-len(orione)
-                    j=self.quotations.index(pai)
-                    self.cur_valid = self.cur_valid[:pai[0]] + nowone + self.cur_valid[pai[1]:]
-                    self.quotations[j]=(pai[0],pai[1]+difflen)
-                    for k in range(j+1,len(self.quotations)):
-                        self.quotations[k] = (self.quotations[k][0]+difflen, self.quotations[k][1] + difflen)
-
-            s=self.cur_valid
+        self.makeEscapes(s)
+        s = self.cur_valid
 
         # remove sensitive char in quotations
         for pai in self.quotations:
@@ -89,7 +43,7 @@ class PyLuaTblParser():
         if len(brackets_stack):
             raise Exception('lua table string format Error on {}')
 
-        # Step 3: iterate brackets
+        # iterate brackets
         cur_res = {}
         work_dict = {}
         for i in xrange(0, len(brackets)):
@@ -118,7 +72,7 @@ class PyLuaTblParser():
                 if pp[0] >= cur_bracket[0] and pp[1] < cur_bracket[1]:
                     content_quotations.append(pp)
             # update remainder quotations
-            self.quotations = sorted(list(set(self.quotations)-set(content_quotations)))
+            self.quotations = sorted(list(set(self.quotations) - set(content_quotations)))
             quo_index = 0
             ls = content.split(',')  # split with separator
             for l in ls:
@@ -167,7 +121,7 @@ class PyLuaTblParser():
                             b = False
                             rls[index] = b
                         elif l == 'nil':
-                            index+=1
+                            index += 1
                             continue
                         else:
                             if l == '':
@@ -197,10 +151,7 @@ class PyLuaTblParser():
                             else:
                                 cur_key = eval(in_str)
                         elif lk[0].find(' ') != -1:
-                            try:
-                                raise Exception("error key")
-                            except:
-                                self.selfRecur(self.oristr, 0)
+                            raise Exception("error key")
                         else:
                             cur_key = lk[0]
 
@@ -229,28 +180,20 @@ class PyLuaTblParser():
             # replace separators
             s = s[:cur_bracket[0]] + s[cur_bracket[0]:cur_bracket[1]].replace(',', '_').replace('=', '_') \
                 + s[cur_bracket[1]:]
-
+        # at last the only key-value is final result
         for key in cur_res:
             self.dict = cur_res[key]
-        return
 
     def dump(self):
         return str(self.dict)
 
     def loadLuaTable(self, f):
-        in_str=open(f).read()
-        # ss=in_str.replace('\"','\\"')
-        # self.is_from_file=True
+        in_str = open(f).read()
         self.load(in_str)
-        # try:
-            # self.load("%s"%(in_str))
-        # except:
-            # self.selfRecur(in_str,0)
 
     def dumpLuaTable(self, f):
-        # print str(self.dict)
         ss = self.genStr(self.dict)
-        fw = open(f,'w')
+        fw = open(f, 'w')
         fw.write(ss)
         fw.close()
 
@@ -284,13 +227,7 @@ class PyLuaTblParser():
             else:
                 return 'true'
         else:
-            if isinstance(d, str):
-                # print d
-                # d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace('\\"',"\"").replace("\\'","\'").replace("\\\\",'\\')
-                # d=d.replace('\\b','\b').replace('\\f','\f').replace('\\r','\r').replace('\\n','\n').replace('\\t','\t').replace("\\\\",'\\')
-                # return "%r"%d
-                return repr(d)
-                # return "\""+d+"\""
+            return repr(d)
 
     def validStr(self, s):
         if len(s) < 2:
@@ -303,7 +240,7 @@ class PyLuaTblParser():
             return False
 
     def removeSpace(self, s):
-        self.cur_valid=''
+        self.cur_valid = ''
         # iterate unquotation part
         b1 = 0
         b2 = 0
@@ -348,20 +285,20 @@ class PyLuaTblParser():
         quotation_2 = []
         quotation_stack_1 = []
         quotation_stack_2 = []
-        in_esca=False
-        x_cnt=0
+        in_esca = False
+        x_cnt = 0
         for i in xrange(0, len(s)):
             if s[i] == '\\' and not in_esca:
                 in_esca = True
                 continue
             if in_esca:
-                if s[i] in ['\'','\"','\\','b','t','r','n','f']:
+                if s[i] in ['\'', '\"', '\\', 'b', 't', 'r', 'n', 'f']:
                     in_esca = False
                     continue
-                elif s[i]=='x' or x_cnt>0:
-                    x_cnt+=1
-                    if x_cnt==3:
-                        x_cnt=0
+                elif s[i] == 'x' or x_cnt > 0:
+                    x_cnt += 1
+                    if x_cnt == 3:
+                        x_cnt = 0
                     continue
                 else:
                     raise Exception('lua table string format Error on escape')
@@ -395,29 +332,28 @@ class PyLuaTblParser():
             raise Exception('lua table string format Error on quotations')
         self.quotations = sorted(quotation_1 + quotation_2)
 
-    escape_map={'\'':'\'','\"':'\"','\\':'\\','b':'\b','t':'\t','n':'\n','f':'\f','r':'\r','x08':'\b','x0c':'\f'}
+    escape_map = {'\'': '\'', '\"': '\"', '\\': '\\', 'b': '\b', 't': '\t', 'n': '\n', 'f': '\f', 'r': '\r',
+                  'x08': '\b', 'x0c': '\f'}
 
-    def makeEscapes2(self,s):
-        self.cur_valid=s
-        # cnt=0
-        for j in xrange(0,len(self.quotations)):
-            p=self.quotations[j]
-            sub_str=self.cur_valid[p[0]:p[1]]
-            n_sub_str=''
-            i=0
+    def makeEscapes(self, s):
+        self.cur_valid = s
+        for j in xrange(0, len(self.quotations)):
+            p = self.quotations[j]
+            sub_str = self.cur_valid[p[0]:p[1]]
+            n_sub_str = ''
+            i = 0
             in_esca = False
-            cnt=0
-            while i<len(sub_str):
+            cnt = 0
+            while i < len(sub_str):
                 if sub_str[i] == '\\' and not in_esca:
                     in_esca = True
-                    cnt+=1
+                    cnt += 1
                 elif in_esca:
                     if sub_str[i] in ['\'', '\"', '\\', 'b', 't', 'r', 'n', 'f']:
                         in_esca = False
                         n_sub_str += self.escape_map[sub_str[i]]
                     elif sub_str[i] == 'x':
                         in_esca = False
-                        # n_sub_str += '\\' + sub_str[i:i + 3]
                         n_sub_str += self.escape_map[sub_str[i:i + 3]]
                         i += 3
                         cnt += 2
@@ -427,588 +363,41 @@ class PyLuaTblParser():
                 else:
                     n_sub_str += sub_str[i]
                 i += 1
-            self.cur_valid=self.cur_valid[:p[0]]+n_sub_str+self.cur_valid[p[1]:]
+            self.cur_valid = self.cur_valid[:p[0]] + n_sub_str + self.cur_valid[p[1]:]
             self.quotations[j] = (p[0], p[1] - cnt)
-            for k in range(j+1,len(self.quotations)):
-                self.quotations[k]=(self.quotations[k][0]-cnt,self.quotations[k][1]-cnt)
+            for k in range(j + 1, len(self.quotations)):
+                self.quotations[k] = (self.quotations[k][0] - cnt, self.quotations[k][1] - cnt)
 
-
-    def makeEscapes(self,s):
-        self.cur_valid=''
-        i=0
-        in_esca=False
-        while i<len(s):
-            if s[i] == '\\' and not in_esca:
-                in_esca = True
-                for j in xrange(0,len(self.quotations)):
-                    if i<self.quotations[j][0]:
-                        old_tuple=self.quotations[j]
-                        self.quotations[j]=(old_tuple[0]-1,old_tuple[1]-1)
-                    elif i<self.quotations[j][1]:
-                        old_tuple = self.quotations[j]
-                        self.quotations[j] = (old_tuple[0], old_tuple[1] - 1)
-            elif in_esca:
-                if s[i] in ['\'','\"','\\','b','t','r','n','f']:
-                    in_esca = False
-                    self.cur_valid +=self.escape_map[s[i]]
-                elif s[i]=='x':
-                    in_esca = False
-                    self.cur_valid += '\\'+s[i:i+3]
-                    i+=3
-                    continue
-                else:
-                    raise Exception('lua table string format Error on escape')
-            else:
-                self.cur_valid +=s[i]
-            i+=1
-
-
-    def removeComment(self,s):
+    def removeComment(self, s):
         state = 'Empty'
         self.cur_valid = ''
-        ctype=1
-        i=0
-        while i<len(s):
-            if state=='Empty':
-                if s[i]=='-':
+        ctype = 1
+        i = 0
+        while i < len(s):
+            if state == 'Empty':
+                if s[i] == '-':
                     state = 'Ready'
                 else:
                     for pai in self.quotations:
                         if i == pai[0]:
-                            self.cur_valid +=s[i:pai[1]]
-                            i=pai[1]
+                            self.cur_valid += s[i:pai[1]]
+                            i = pai[1]
                     self.cur_valid += s[i]
-            elif state=='Ready':
-                if s[i]=='-':
-                    if s[i+1:i+3]=='[[':
-                        ctype=2
+            elif state == 'Ready':
+                if s[i] == '-':
+                    if s[i + 1:i + 3] == '[[':
+                        ctype = 2
                     else:
-                        ctype=1
+                        ctype = 1
                     state = 'Begin'
                 else:
-                    state='Empty'
-                    self.cur_valid += s[i-1]
+                    state = 'Empty'
+                    self.cur_valid += s[i - 1]
                     self.cur_valid += s[i]
-            elif state=='Begin':
-                if ctype==1 and s[i]=='\n':
-                    state='Empty'
-                elif ctype==2 and s[i:i+2]==']]':
-                    state='Empty'
-                    i+=1
-            i+=1
-
-    def selfRecur(self, s, idx):
-        if idx >= len(s):
-            raise Exception, "len exceed"
-        if s[idx] == '\x00':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x01':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x02':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x03':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x04':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x05':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x06':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x07':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x08':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\t':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\n':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x0b':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x0c':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\r':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x0e':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x0f':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x10':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x11':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x12':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x13':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x14':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x15':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x16':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x17':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x18':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x19':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x1a':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x1b':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x1c':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x1d':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x1e':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x1f':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == ' ':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '!':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '"':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '#':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '$':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '%':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '&':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == "'":
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '(':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == ')':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '*':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '+':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == ',':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '-':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '.':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '/':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '0':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '1':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '2':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '3':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '4':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '5':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '6':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '7':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '8':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '9':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == ':':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == ';':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '<':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '=':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '>':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '?':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '@':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'A':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'B':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'C':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'D':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'E':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'F':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'G':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'H':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'I':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'J':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'K':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'L':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'M':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'N':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'O':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'P':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'Q':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'R':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'S':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'T':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'U':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'V':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'W':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'X':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'Y':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'Z':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '[':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\\':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == ']':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '^':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '_':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '`':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'a':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'b':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'c':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'd':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'e':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'f':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'g':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'h':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'i':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'j':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'k':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'l':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'm':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'n':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'o':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'p':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'q':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'r':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 's':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 't':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'u':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'v':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'w':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'x':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'y':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == 'z':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '{':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '|':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '}':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '~':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x7f':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x80':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x81':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x82':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x83':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x84':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x85':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x86':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x87':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x88':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x89':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x8a':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x8b':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x8c':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x8d':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x8e':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x8f':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x90':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x91':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x92':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x93':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x94':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x95':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x96':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x97':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x98':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x99':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x9a':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x9b':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x9c':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x9d':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x9e':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\x9f':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa0':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa1':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa2':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa3':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa4':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa5':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa6':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa7':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa8':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xa9':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xaa':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xab':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xac':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xad':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xae':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xaf':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb0':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb1':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb2':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb3':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb4':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb5':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb6':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb7':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb8':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xb9':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xba':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xbb':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xbc':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xbd':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xbe':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xbf':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc0':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc1':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc2':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc3':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc4':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc5':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc6':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc7':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc8':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xc9':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xca':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xcb':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xcc':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xcd':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xce':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xcf':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd0':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd1':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd2':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd3':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd4':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd5':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd6':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd7':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd8':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xd9':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xda':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xdb':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xdc':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xdd':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xde':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xdf':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe0':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe1':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe2':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe3':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe4':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe5':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe6':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe7':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe8':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xe9':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xea':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xeb':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xec':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xed':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xee':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xef':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf0':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf1':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf2':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf3':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf4':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf5':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf6':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf7':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf8':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xf9':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xfa':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xfb':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xfc':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xfd':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xfe':
-            self.selfRecur(s, idx + 1)
-        elif s[idx] == '\xff':
-            self.selfRecur(s, idx + 1)
+            elif state == 'Begin':
+                if ctype == 1 and s[i] == '\n':
+                    state = 'Empty'
+                elif ctype == 2 and s[i:i + 2] == ']]':
+                    state = 'Empty'
+                    i += 1
+            i += 1
